@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20210830_create_table_mobile_pin_code
+      author: author
+      changes:
+        - sql:
+            sql: "
+              CREATE TABLE mobile_pin_code (
+                id BIGSERIAL NOT NULL CONSTRAINT pk_mobile_pin_code PRIMARY KEY,
+                user_info_uri UUID CONSTRAINT unique_user_info_id UNIQUE,
+                mobile_pin_code VARCHAR(255),
+                created_date TIMESTAMP WITH TIME ZONE
+              ); 
+
+              COMMENT ON TABLE mobile_pin_code IS 'Все пин коды пользователей мобильного приложения';
+              COMMENT ON COLUMN mobile_pin_code.id IS 'ID пин кода пользователя';
+              COMMENT ON COLUMNT mobile_pin_code.user_info_id IS 'ID пользователя';
+              COMMENT ON COLUMNT mobile_pin_code.mobile_pin_code IS 'Хеш пин кода';
+              COMMENT ON COLUMNT mobile_pin_code.created_date IS 'Дата создания';
+            "
+        - sql:
+            sql: "
+              ALTER TABLE user_info ADD COLUMN current_mobile_pin_code_id BIGINT CONSTRAINT fk_user_info_mobile_pin_code REFERENCES mobile_pin_code;
+              COMMENT ON COLUMN user_info.current_mobile_pin_code_id IS 'Пин код в мобильном приложении';
+            "

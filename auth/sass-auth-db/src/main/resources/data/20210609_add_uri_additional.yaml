@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+    id: 20210609_add_redirect_uri
+    author: author
+    changes:
+      - sql:
+          sql: "UPDATE oauth_client_details SET web_server_redirect_uri=web_server_redirect_uri || ',http://localhost:9293/geteway/login'"

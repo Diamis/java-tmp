@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20210215_add_column_in_verification_token_table
+      author: author
+      changes:
+        - sql:
+            sql: "
+              ALTER TABLE verification_token ADD COLUMN type VARCHAR(255);
+              COMMENT ON COLUMN verification_token.type is 'Тип токена';
+            "

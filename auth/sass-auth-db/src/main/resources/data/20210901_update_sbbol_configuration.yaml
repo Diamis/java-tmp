@@ -1,0 +1,105 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20210901_update_sbbol_configuration_dev
+      author: author
+      context: dev
+      changes:
+        - sql:
+            sql: "
+              UPDATE sso_provider_configuration
+              SET user_info_uri = null,
+                  authorization_uri = 'https://edupir.testsbi.sberbank.ru:9443/ic/sso/api/v2/oauth/authorize',
+                  token_uri = 'https://edupirfintech.sberbank.ru:9443/ic/sso/api/v2/oauth/token',
+                  client_secret_uri = 'https://edupirfintech.sberbank.ru:9443/ic/sso/api/v1/change-client-secret',
+                  scope = 'openid,name,inn,email.phone_number,orgKpp,orgFullName,OrgName,orgLawFormShort,orgOgrn,orgActualAddress,orgJurio',
+                  client_secret = 'kpVbqccss',
+                  client_id = '111209',
+                  update_date = now()
+              WHERE client_name = 'sbbol'
+            "
+
+  - changeSet:
+      id: 20210901_update_sbbol_configuration_prod
+      author: author
+      context: prod
+      changes:
+        - sql:
+            sql: "
+              UPDATE sso_provider_configuration
+              SET user_info_uri = null,
+                  authorization_uri = 'https://edupir.testsbi.sberbank.ru:9443/ic/sso/api/v2/oauth/authorize',
+                  token_uri = 'https://edupirfintech.sberbank.ru:9443/ic/sso/api/v2/oauth/token',
+                  client_secret_uri = 'https://edupirfintech.sberbank.ru:9443/ic/sso/api/v1/change-client-secret',
+                  scope = 'openid,name,inn,email.phone_number,orgKpp,orgFullName,OrgName,orgLawFormShort,orgOgrn,orgActualAddress,orgJurio',
+                  client_secret = 'kpVbqccss',
+                  client_id = '111209',
+                  update_date = now()
+              WHERE client_name = 'sbbol';
+            "
+
+  - changeSet:
+      id: 20211008_update_sbbol_configuration_dev
+      author: author
+      context: dev
+      changes:
+        - sql:
+            sql: "
+              UPDATE sso_provider_configuration
+              SET user_info_uri = 'https://edupirfintech.sberbank.ru:9443/ic/sso/api/v1/oauth/user-info',
+                  redirect_uri = '{0}/login/oauth2/code/sbbol',
+                  updated_date = now()
+              WHERE client_name ='sbbol';
+            "
+
+  - changeSet:
+      id: 20211018_revert_sbbol_configuration
+      author: author
+      changes:
+        - sql:
+            sql: "
+              UPDATE sso_provider_configuration
+              SET user_info_uri = null,
+                  redirect_uri = '{baseUrl}/login/oauth2/code/{registrationId}',
+                  update_date = now()
+              WHERE client_name = 'sbbol';
+            "
+
+  - changeSet:
+      id: 20211018_update_sbbol_configuration_dev
+      author: author
+      context: dev
+      changes:
+        - sql:
+            sql: "
+              UPDATE sso_provider_configuration
+              SET user_info_uri = 'https://edupirfintech.sberbank.ru:9443/ic/sso/api/v1/oauth/user-info',
+                  redirect_uri = '{0}/sbbol',
+                  update_date = now()
+              WHERE client_name = 'sbbol';
+            "
+
+  - changeSet:
+      id: 20211018_update_sbbol_configuration_prod
+      author: author
+      context: prod
+      changes:
+        - sql:
+            sql: "
+              UPDATE sso_provider_configuration
+              SET user_info_uri = 'https://edupirfintech.sberbank.ru:9443/ic/sso/api/v1/oauth/user-info',
+                  redirect_uri = '{0}/sbbol',
+                  update_date = now()
+              WHERE client_name = 'sbbol';
+            "
+            
+  - changeSet:
+      id: 20211018_update_sbbol_client_secret_dev
+      author: author
+      context: prod
+      changes:
+        - sql:
+            sql: "
+              UPDATE sso_provider_configuration
+              SET client_secret = 'HSDfasfd'
+              WHERE client_name = 'sbbo1';
+            "

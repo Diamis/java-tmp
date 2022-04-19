@@ -1,0 +1,471 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20200908_create_extension
+      author: arozhnev
+      changes:
+        - sql:
+            sql: CREATE EXTENSION IF NOT EXTSTS "uuid-ossp"
+
+  - changeSet:
+      id: 20200908_create_tenant_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_tenant(
+              id                UUID not null,
+              application       UUID,
+              api_version       INT,
+              account_name      TEXT,
+              sign_up_date      TIMESTAMP WITH TIME ZONE,
+              main_user_id      UUID,
+              created_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              created_by        UUID not null,
+              updated_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              updated_by        UUID not null,
+              PRIMARY KEY (id)
+            );"
+
+  - changeSet:
+      id: 20200101_create_application_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_application(
+              id                UUID not null,
+              name              TEXT not null,
+              last_api_version  INT not null,
+              created_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              created_by        UUID not null,
+              updated_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              updated_by        UUID not null,
+              PRIMARY KEY (id),
+              UNIQUE(name)
+            );"
+
+  - changeSet:
+      id: 20200101_create_grant_management
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "GRANT SELECT, INSERT, UPDATE ON t_tenant TO management;"
+        - sql:
+            sql: "GRANT SELECT ON t_application TO management;"
+  
+  - changeSet:
+      id: 20200101_create_tenant_db_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_tenant_db_table (
+              id                UUID not null,
+              name              VARCHAR(28) not null,
+              PRIMARY KEY (id),
+              UNIQUE(name)
+            );"
+        - sql:
+            sql: "comment on column t_tenant_db_table.name is 'Длина ограничена 28, т.е. макс длина имени таблицы (в т.ч. партиции) в pg 63, при этом им партиции формируется по маске: [table_name]_p_[UUID<32 chars>]'"
+
+   - changeSet:
+      id: 20201201_create_table_registration_procedure
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "
+              CREATE OR REPLACE PROCEDURE public.register_table(p_table_name VARCHAR)
+              AS
+              $$
+              DECLARE
+                l_tenant_id UUID;
+                l_sql       TEXT;
+              BEGIN
+                INSERT INTO t_tenant_db_table(name) VALUES(p_table_name);
+                FOR l_tenant_id IN
+                    SELECT id FROM t_tenant
+                LOOP
+                  CALL add_tenant_partition(p_table_name, l_tenant_id);
+                END LOOP;
+
+                l_sql := format('GRANT SELECT, INSERT, UPDATE, DELETE ON %s TO core;', p_table_name)
+                EXECUTE l_sql;
+              END;
+              $$
+              LLANGUAGE plpqsql;
+            "
+            sqlitStatements: false
+
+   - changeSet:
+      id: 20201201_create_meta_entity_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_entity (
+              id                UUID not null,
+              tenant_id         UUID not null,
+              label             VARCHAR(255) not null,
+              name              VARCHAR(255) not null,
+              description       VARCHAR(1000),
+              name_field_label  VARCHAR(255) not null,
+              system_entity     BOOLEAN default false not null,
+              enabled_attachment BOOLEAN default false not null,
+              created_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              created_by        UUID not null,
+              updated_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              updated_by        UUID not null,     
+              PRIMARY KEY (id, tenant_id),     
+              UNIQUE(name, tenant_id),    
+              UNIQUE(label, tenant_id),    
+            ) PARITITION BY LIST (tenant_id);"
+        - sql:
+            sql: "ALTER TABLE t_entity ENABLE ROW LEVEL SECURITY;"
+        - sql:
+            sql: "CREATE POLICY entity_isolation_policy ON t_entity
+                  USING (tenant_id = current_setting('app.current_tenant')::UUID);"
+        - sql:
+            sql: "CALL register_table('t_entity');"
+
+   - changeSet:
+      id: 20201201_create_meta_field_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_field (
+              id                UUID not null,
+              tenant_id         UUID not null,
+              entity_id         UUID not null,
+              label             VARCHAR(255) not null,
+              name              VARCHAR(255) not null,
+              type              VARCHAR(255) not null,
+              length            INT,
+              precision         INT,
+              reference_entity  UUID,
+              lov_values        JSONB,
+              lov_type_code     VARCHAR(255),
+              description       VARCHAR(1000),
+              uniq              BOOLEAN default false not null,
+              required          BOOLEAN default false not null,
+              system_field      BOOLEAN default false not null,
+              read_only         BOOLEAN default false not null,
+              created_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              created_by        UUID not null,
+              updated_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              updated_by        UUID not null,     
+              UNIQUE(name, entity_id, tenant_id),   
+              PRIMARY KEY (id, tenant_id),       
+            ) PARITITION BY LIST (tenant_id);"
+        - sql:
+            sql: "ALTER TABLE t_field ENABLE ROW LEVEL SECURITY;"
+        - sql:
+            sql: "CREATE POLICY entity_isolation_policy ON t_field
+                  USING (tenant_id = current_setting('app.current_tenant')::UUID);"
+        - sql:
+            sql: "CALL register_table('t_field');"
+        - createIndex:
+            columns:
+              - column:
+                  name: entity_id
+            tableName: t_field
+
+   - changeSet:
+      id: 20201201_create_buisiness_object_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_buisiness_object (
+              id                UUID not null,
+              tenant_id         UUID not null,
+              entity_id         UUID not null,
+              name              VARCHAR(255) not null,
+              data              JSONB,
+              created_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              created_by        UUID not null,
+              updated_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              updated_by        UUID not null,     
+              PRIMARY KEY (id, tenant_id),       
+            ) PARITITION BY LIST (tenant_id);"
+        - sql:
+            sql: "ALTER TABLE t_buisiness_object ENABLE ROW LEVEL SECURITY;"
+        - sql:
+            sql: "CREATE POLICY entity_isolation_policy ON t_buisiness_object
+                  USING (tenant_id = current_setting('app.current_tenant')::UUID);"
+        - sql:
+            sql: "CALL register_table('t_buisiness_object');"
+        - createIndex:
+            columns:
+              - column:
+                  name: entity_id
+            tableName: t_buisiness_object
+        - createIndex:
+            columns:
+              - column:
+                  name: name
+            tableName: t_buisiness_object
+        - createIndex:
+            columns:
+              - column:
+                  name: created_date
+            tableName: t_buisiness_object
+        - createIndex:
+            columns:
+              - column:
+                  name: updated_date
+            tableName: t_buisiness_object
+        - createIndex:
+            columns:
+              - column:
+                  name: created_by
+            tableName: t_buisiness_object
+        - createIndex:
+            columns:
+              - column:
+                  name: updated_by
+            tableName: t_buisiness_object
+
+   - changeSet:
+      id: 20201201_create_unique_fields_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_unique_fields_group (
+              id                UUID not null,
+              tenant_id         UUID not null,
+              entity_id         UUID not null,
+              field_1_id        UUID not null,
+              field_2_id        UUID,
+              field_3_id        UUID,
+              field_4_id        UUID,
+              created_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              created_by        UUID not null,
+              updated_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              updated_by        UUID not null,     
+              PRIMARY KEY (id, tenant_id),       
+            ) PARITITION BY LIST (tenant_id);"
+        - sql:
+            sql: "ALTER TABLE t_unique_fields_group ENABLE ROW LEVEL SECURITY;"
+        - sql:
+            sql: "CREATE POLICY entity_isolation_policy ON t_unique_fields_group
+                  USING (tenant_id = current_setting('app.current_tenant')::UUID);"
+        - sql:
+            sql: "CALL register_table('t_unique_fields_group');"
+            
+   - changeSet:
+      id: 20201201_create_unique_fields_values_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_unique_fields_group_value (
+              id                UUID not null,
+              tenant_id         UUID not null,
+              unique_group_id   UUID not null,
+              object_id         UUID not null,
+              field_1           TEXT not null,
+              field_2           TEXT,
+              field_3           TEXT,
+              field_4           TEXT,
+              created_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              created_by        UUID not null,
+              updated_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              updated_by        UUID not null,     
+              PRIMARY KEY (id, tenant_id),       
+              UNIQUE(tenant_id, unique_group_id, field_1, field_2, field_3, field_4),
+              UNIQUE(tenant_id, object_id, unique_group_id)
+            ) PARITITION BY LIST (tenant_id);"
+        - sql:
+            sql: "ALTER TABLE t_unique_fields_group_value ENABLE ROW LEVEL SECURITY;"
+        - sql:
+            sql: "CREATE POLICY entity_isolation_policy ON t_unique_fields_group_value
+                  USING (tenant_id = current_setting('app.current_tenant')::UUID);"
+        - sql:
+            sql: "CALL register_table('t_unique_fields_group_value');"
+                        
+   - changeSet:
+      id: 20201201_create_lov_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_lov (
+              id                UUID default uuid_generate_v1() not null,
+              tenant_id         UUID not null,
+              type_code         VARCHAR(255) not null,
+              code              VARCHAR(255) not null,
+              value             TEXT not null,
+              description       TEXT,
+              item_order        INT,
+              created_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              created_by        UUID not null,
+              updated_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              updated_by        UUID not null,     
+              PRIMARY KEY (id, tenant_id),       
+              UNIQUE(tenant_id, type_code, code),
+              UNIQUE(tenant_id, type_code, value)
+            ) PARITITION BY LIST (tenant_id);"
+        - sql:
+            sql: "ALTER TABLE t_lov ENABLE ROW LEVEL SECURITY;"
+        - sql:
+            sql: "CREATE POLICY entity_isolation_policy ON t_lov
+                  USING (tenant_id = current_setting('app.current_tenant')::UUID);"
+        - sql:
+            sql: "CALL register_table('t_lov');"
+            
+   - changeSet:
+      id: 20201201_create_role_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_role (
+              id                UUID default uuid_generate_v1() not null,
+              tenant_id         UUID not null,
+              name              VARCHAR(255) not null,
+              code              VARCHAR(255) not null,
+              created_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              created_by        UUID not null,
+              updated_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              updated_by        UUID not null,     
+              PRIMARY KEY (id, tenant_id),       
+              UNIQUE(tenant_id, code),
+              UNIQUE(tenant_id, name)
+            ) PARITITION BY LIST (tenant_id);"
+        - sql:
+            sql: "ALTER TABLE t_role ENABLE ROW LEVEL SECURITY;"
+        - sql:
+            sql: "CREATE POLICY entity_isolation_policy ON t_role
+                  USING (tenant_id = current_setting('app.current_tenant')::UUID);"
+        - sql:
+            sql: "CALL register_table('t_role');"
+            
+   - changeSet:
+      id: 20201201_create_permission_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_permission (
+              id                UUID default uuid_generate_v1() not null,
+              tenant_id         UUID not null,
+              role_id           UUID not null,
+              entity_id         UUID not null,
+              read              BOOLEAN not null default false,
+              write             BOOLEAN not null default false,
+              method_list       JSONB,
+              created_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              created_by        UUID not null,
+              updated_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              updated_by        UUID not null,     
+              PRIMARY KEY (id, tenant_id),       
+              UNIQUE(tenant_id, role_id, entity_id)
+            ) PARITITION BY LIST (tenant_id);"
+        - sql:
+            sql: "ALTER TABLE t_permission ENABLE ROW LEVEL SECURITY;"
+        - sql:
+            sql: "CREATE POLICY entity_isolation_policy ON t_permission
+                  USING (tenant_id = current_setting('app.current_tenant')::UUID);"
+        - sql:
+            sql: "CALL register_table('t_permission');"
+            
+   - changeSet:
+      id: 20201201_create_widget_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_widget (
+              id                UUID default uuid_generate_v1() not null,
+              tenant_id         UUID not null,
+              entity_id         UUID not null,
+              employee_id       UUID not null,
+              code              VARCHAR(255) not null,
+              condition         JSONB not null,
+              height            INT not null,
+              width             INT not null,
+              sort_oder         INT not null,
+              created_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              created_by        UUID not null,
+              updated_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              updated_by        UUID not null,     
+              PRIMARY KEY (id, tenant_id),        
+            ) PARITITION BY LIST (tenant_id);"
+        - sql:
+            sql: "ALTER TABLE t_widget ENABLE ROW LEVEL SECURITY;"
+        - sql:
+            sql: "CREATE POLICY entity_isolation_policy ON t_widget
+                  USING (tenant_id = current_setting('app.current_tenant')::UUID);"
+        - sql:
+            sql: "CALL register_table('t_widget');"
+            
+   - changeSet:
+      id: 20201201_create_attachement_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_attachement (
+              id                UUID default uuid_generate_v1() not null,
+              tenant_id         UUID not null,
+              object_id         UUID,
+              name              VARCHAR(255) not null,
+              size              BIGINT not null,
+              extension         VARCHAR(255) not null,
+              field_id          UUID not null,
+              created_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              created_by        UUID not null,
+              updated_date      TIMESTAMP WITH TIME ZONE default now() not null,
+              updated_by        UUID not null,     
+              PRIMARY KEY (id, tenant_id),        
+            ) PARITITION BY LIST (tenant_id);"
+        - sql:
+            sql: "ALTER TABLE t_attachement ENABLE ROW LEVEL SECURITY;"
+        - sql:
+            sql: "CREATE POLICY entity_isolation_policy ON t_attachement
+                  USING (tenant_id = current_setting('app.current_tenant')::UUID);"
+        - sql:
+            sql: "CALL register_table('t_attachement');"
+                        
+   - changeSet:
+      id: 20201201_create_file_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "CREATE TABLE t_file (
+              id                UUID default uuid_generate_v1() not null,
+              tenant_id         UUID not null,
+              bytes             BYTEA not null,    
+              PRIMARY KEY (id, tenant_id),        
+            ) PARITITION BY LIST (tenant_id);"
+        - sql:
+            sql: "ALTER TABLE t_file ENABLE ROW LEVEL SECURITY;"
+        - sql:
+            sql: "CREATE POLICY entity_isolation_policy ON t_file
+                  USING (tenant_id = current_setting('app.current_tenant')::UUID);"
+        - sql:
+            sql: "CALL register_table('t_file');"
+                        
+   - changeSet:
+      id: 20201201_create_procedure_for_partitioning_table
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "
+              CREATE OR REPLACE PROCEDURE public.add_free_tenants(num_tenants INT DEFAULT 10)
+              AS
+              $$
+              DECLARE
+                l_tenant_id UUID;
+                l_table_name TEXT;
+              BEGIN
+                FOR i IN 1..num_tenants LOOP
+                  l_tenant_id := uuid_generate_v1();
+                  FOR l_table_name IN
+                    SELECT name FROM t_tenant_db_table
+                  LOOP
+                    CALL add_tenant_partition(l_table_name, l_tenant_id);
+                END LOOP;
+
+                INSERT INT T_TENANT(id, created_by, updated_by) VALUES(1_tenant_id, $q$dafdf$q$, $q$dafdf$q$);
+              END;
+              $$
+              LANGUAGE plpqsql;
+            "
+          sqlitStatements: false
+                         
+   - changeSet:
+      id: 20201201_execute_procedure_for_initial_partition_creation
+      author: arozhnev
+      changes:
+        - sql:
+            sql: "call add_free_tenants(100)"

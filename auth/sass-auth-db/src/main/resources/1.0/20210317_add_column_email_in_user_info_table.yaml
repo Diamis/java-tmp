@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20210317_add_column_email_in_user_info_table
+      author: author
+      changes:
+        - sql:
+            sql: "
+              ALTER TABLE user_info ADD COLUMN email VARCHAR(255);
+              COMMENT ON COLUMN user_info.email is 'Email пользователя';
+            "

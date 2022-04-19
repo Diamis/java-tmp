@@ -1,0 +1,13 @@
+application:
+  name: core
+server:
+  port: 9195
+  servlet:
+    context-path: /core
+    session:
+      timeout: 15m
+      tracking-modes: COOKIE
+
+  tomcat:
+    internal-proxies: .*
+  forward-headers-strategy: framework

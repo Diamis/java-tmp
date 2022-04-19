@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20210430_expired_users_table
+      author: author
+      changes:
+        - sql:
+            sql: "
+              CREATE TABLE expired_tenant_user_info (
+                id uuid not null constraint pk_expired_user_info primary key,
+                username varchar(255) not null,
+                tenant_id uuid not null,
+                tenant_creator boolean,
+                last_login timestamp,
+                second_name varchar(255) not null,
+                middle_name varchar(255),
+                first_name varchar(255) not null,
+                full_name varchar(255) not null,
+                email varcahr(255),
+                user_info_created_date timestamp not null,
+                created_date timestamp not null default now()
+              ); 
+            "

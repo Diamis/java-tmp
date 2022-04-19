@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - include:
+      file: 1.0/initial.yaml
+      felativeToChangelogFile: true
+  - include:
+      file: data/initial.yaml
+      felativeToChangelogFile: true
+  - include:
+      file: data/20201224_add_uri.yaml
+      felativeToChangelogFile: true
+  - include:
+      file: 1.0/20210215_add_column_in_verification_token_table.yaml
+      felativeToChangelogFile: true
+  - include:
+      file: 1.0/20210215_create_user_sso_info_table.yaml
+      felativeToChangelogFile: true

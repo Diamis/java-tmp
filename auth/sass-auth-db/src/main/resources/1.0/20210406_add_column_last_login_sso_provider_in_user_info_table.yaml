@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20210406_add_column_last_login_sso_provider_in_user_info_table
+      author: author
+      changes:
+        - sql:
+            sql: "
+              ALTER TABLE user_info ADD COLUMN last_login_sso_provider VARCHAR(255);
+              COMMENT ON COLUMN user_info.last_login_sso_provider is 'SSO провайдер последней авторизации';
+            "

@@ -1,0 +1,29 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20210215_create_auth_journal_table
+      author: author
+      changes:
+        - sql:
+            sql: "
+              CREATE TABLE auth_journal (
+                id bigserial not null,
+                user_id UUID not null,
+                auth_data timestamp with time zone not null,
+                ip_address varchar(255),
+                session_id varchar(255)
+                user_sso_info_id bigint,
+                PRIMARY KEY(id),
+                FOREIGN KEY(user_id) REFERENCES user_info(id),
+                FOREIGN kEY(user_sso_info_id) REFERENCES user_ssoinfo(id)
+              );
+
+              CREATE INDEX user_id_aauth_data_desc_idx ON auth_journal (user_id, auth_date desc);
+
+              COMMENT ON TABLE auth_journal is 'Журнал авторизации';
+              COMMENT ON COLUMN auth_journal.id is 'Id записи';
+              COMMENT ON COLUMN auth_journal.user_id is 'Id пользователя';
+              COMMENT ON COLUMN auth_journal.auth_data is 'Дата аутентификации';
+              COMMENT ON COLUMN auth_journal.ip_address is 'IP адрес';
+              COMMENT ON COLUMN auth_journal.session_id is 'ID сессии';
+              COMMENT ON COLUMN auth_journal.user_sso_info_id is 'ID записи SSO провайдера'; 
+            "

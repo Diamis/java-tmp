@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20210422_add_timezone_to_password
+      author: author
+      changes:
+        - sql:
+            sql: "
+              ALTER TABLE password ADD COLUMN created_date TYPE TIMESTAMP WITH TIME ZONE;
+              ALTER TABLE password ADD COLUMN updated_date TYPE TIMESTAMP WITH TIME ZONE;
+            "
+
+  - changeSet:
+      id: 20210422_add_timezone_to_user_info
+      author: author
+      changes:
+        - sql:
+            sql: "
+              ALTER TABLE user_info ADD COLUMN temporaty_blocked_time TYPE TIMESTAMP WITH TIME ZONE;
+              ALTER TABLE user_info ADD COLUMN last_login TYPE TIMESTAMP WITH TIME ZONE;
+              ALTER TABLE user_info ADD COLUMN created_date TYPE TIMESTAMP WITH TIME ZONE;
+              ALTER TABLE user_info ADD COLUMN updated_date TYPE TIMESTAMP WITH TIME ZONE;
+            "
+
+  - changeSet:
+      id: 20210422_add_timezone_to_sso_info
+      author: author
+      changes:
+        - sql:
+            sql: "
+              ALTER TABLE sso_info ADD COLUMN created_date TYPE TIMESTAMP WITH TIME ZONE;
+              ALTER TABLE sso_info ADD COLUMN updated_date TYPE TIMESTAMP WITH TIME ZONE;
+            "
+            
+  - changeSet:
+      id: 20210422_add_timezone_to_verification_token
+      author: author
+      changes:
+        - sql:
+            sql: "
+              ALTER TABLE verification_token ADD COLUMN expiry TYPE TIMESTAMP WITH TIME ZONE;
+              ALTER TABLE verification_token ADD COLUMN created_date TYPE TIMESTAMP WITH TIME ZONE;
+              ALTER TABLE verification_token ADD COLUMN updated_date TYPE TIMESTAMP WITH TIME ZONE;
+            "
+                        
+  - changeSet:
+      # Класс UserInfo был изменен, токены содержат сериализованный объект этого класса.
+      # Надо удалить, чтобы небыло ошибки десеризации
+      id: 20210422_delete_old_tokens
+      author: author
+      changes:
+        - sql:
+            sql: "
+              DELETE FROM oauth_access_token;
+              DELETE FROM oauth_refresh_token;
+            "

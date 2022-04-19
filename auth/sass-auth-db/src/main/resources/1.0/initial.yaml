@@ -1,0 +1,250 @@
+# Prerequisites: создана база uaht и установлено расширение uuid-ossp
+
+databaseChangeLog:
+  - changeSet:
+      id: 20201002_create_oauth_token_table
+      author: author
+      changes:
+        - sql:
+            sql: "
+              CREATE TABLE oauth_access_token (
+                token_id          VARCHAR(255) CONSTRAINT uniq_oauth_access_token_id UNIQUE,
+                token             bytea,
+                authentication_id VARCHAR(255) CONSTRAINT uniq_oauth_access_tokenauthentication_id UNIQUE,
+                user_name         VARCHAR(255),
+                client_id         VARCHAR(255),
+                authentication    bytea,
+                refresh_token     VARCHAR(255)
+              );
+
+              COMMENT ON TABLE oauth_access_token is 'Хранилище токенов';
+              COMMENT ON COLUMN oauth_access_token.token_id is 'Id токена';
+              COMMENT ON COLUMN oauth_access_token.token is 'Токен, записанный в байтах';
+              COMMENT ON COLUMN oauth_access_token.authentication_id is 'Id, аутентификации';
+              COMMENT ON COLUMN oauth_access_token.user_name is 'Логин пользователя';
+              COMMENT ON COLUMN oauth_access_token.client_id is 'Id клиента(микросервиса)';
+              COMMENT ON COLUMN oauth_access_token.authentication is 'Сериализованный authoreties(роли + пермиссии и т.д.)';
+              COMMENT ON COLUMN oauth_access_token.refresh_token is 'Обновленный токен'; 
+            "
+            
+  - changeSet:
+      id: 20201002_create_oauth_approvals_table
+      author: author
+      changes:
+        - sql:
+            sql: "
+              CREATE TABLE oauth_approvals (
+                user_id           UUID,
+                client_id         VARCHAR(255),
+                scope             VARCHAR(255),
+                status            VARCHAR(255),
+                expires_at        TIMESTAMP,
+                last_modified_at  TIMESTAMP
+              );
+
+              COMMENT ON TABLE oauth_approvals is 'Вспомогательная таблица для связи с user и client';
+              COMMENT ON COLUMN oauth_approvals.user_id is 'id пользователя';
+              COMMENT ON COLUMN oauth_approvals.client_id is 'id клиента(микросервиса)';
+              COMMENT ON COLUMN oauth_approvals.scope is 'scope';
+              COMMENT ON COLUMN oauth_approvals.status is 'status';
+              COMMENT ON COLUMN oauth_approvals.expires_at is 'Время истечения';
+              COMMENT ON COLUMN oauth_approvals.last_modified_at is 'Время последнего изменения';
+            "
+            
+  - changeSet:
+      id: 20201002_create_oauth_client_details_table
+      author: author
+      changes: 
+        - sql:
+            sql: "
+              CREATE TABLE oauth_client_details (
+                client_id         VARCHAR(255) not null,
+                client_secret     VARCHAR(255),
+                resource_ids      VARCHAR(255),
+                scope             VARCHAR(255),
+                authorized_grant_types VARCHAR(255),
+                web_server_redirect_uri VARCHAR(255),
+                authorities       VARCHAR(255),
+                access_token_validity INTEGER,
+                refresh_token_validity INTEGER,
+                additional_information VARCHAR(255),
+                autoapprove VARCHAR(255)
+              );
+
+              COMMENT ON TABLE oauth_client_details is 'Таблица, описывающая сущность авторизованного клиента';
+              COMMENT ON COLUMN oauth_client_details.client_id is 'id клиенского сервиса';
+              COMMENT ON COLUMN oauth_client_details.client_secret is 'Ключ клиента';
+              COMMENT ON COLUMN oauth_client_details.resource_ids is 'Id ресурсного сервиса';
+              COMMENT ON COLUMN oauth_client_details.scope is 'scope';
+              COMMENT ON COLUMN oauth_client_details.authorized_grant_types is 'тип авторизации';
+              COMMENT ON COLUMN oauth_client_details.web_server_redirect_uri is 'Редирект webServer';
+              COMMENT ON COLUMN oauth_client_details.authorities is 'scope permit + roles';
+              COMMENT ON COLUMN oauth_client_details.access_token_validity is 'Проверка токена доступа';
+              COMMENT ON COLUMN oauth_client_details.refresh_token_validity is 'Проверка обновленного токена';
+              COMMENT ON COLUMN oauth_client_details.additional_information is 'Доп информация';
+              COMMENT ON COLUMN oauth_client_details.autoapprove is 'Автопроверка';
+            "
+
+  - changeSet:
+      id: 20201002_create_oauth_client_token_table
+      author: author
+      changes: 
+        - sql:
+            sql: "
+              CREATE TABLE oauth_client_token (
+                token_id          VARCHAR(255),
+                token             BYTEA,
+                authentication_id VARCHAR(255),
+                user_name         VARCHAR(255),
+                client_id         VARCHAR(255)
+              );
+
+              COMMENT ON TABLE oauth_client_token is 'Таблица c токенами клиента';
+              COMMENT ON COLUMN oauth_client_token.token_id is 'id токена';
+              COMMENT ON COLUMN oauth_client_token.token is 'Токен в байтах';
+              COMMENT ON COLUMN oauth_client_token.authentication_id is 'Id аутентификации';
+              COMMENT ON COLUMN oauth_client_token.user_name is 'Логин пользователя';
+              COMMENT ON COLUMN oauth_client_token.client_id is 'Id клиента (микросервиса)';
+            "
+            
+  - changeSet:
+      id: 20201002_create_oauth_code_table
+      author: author
+      changes: 
+        - sql: "
+            CREATE TABLE oauth_code (
+              code              VARCHAR(255),
+              authentication    BYTEA
+            );
+
+            COMMENT ON TABLE oauth_code is 'Код, для Oauth code flow (Меняем на токен)';
+            COMMENT ON COLUMN oauth_code.code is 'Код';
+            COMMENT ON COLUMN oauth_code.authentication is 'Сериализованный authorities(роли + пермиссии и т.д)';
+        "
+            
+  - changeSet:
+      id: 20201002_create_oauth_refresh_token_table
+      author: author
+      changes: 
+        - sql: "
+            CREATE TABLE oauth_refresh_token (
+              token_id          VARCHAR(255) CONSTRAINT uniq_oauth_refresh_token_id UNIQUE,
+              token             BYTEA,
+              authentication    BYTEA
+            );
+
+            COMMENT ON TABLE oauth_refresh_token is 'ID токена';
+            COMMENT ON COLUMN oauth_refresh_token.token_id is 'ID Токен';
+            COMMENT ON COLUMN oauth_refresh_token.token is 'Токен';
+            COMMENT ON COLUMN oauth_refresh_token.authentication is 'Сериализованный authorities(роли + пермисиион и т.д.)';
+        "
+            
+  - changeSet:
+      id: 20201002_create_password_table
+      author: author
+      changes: 
+        - sql: "
+            CREATE TABLE password (
+              id                BIGSERIAL NOT NULL CONSTRAINT pk_password PRIMARY KEY,
+              user_info_id      UUID,
+              password          VARCHAR(255),
+              created_date      TIMESTAMP,
+              updated_date      TIMESTAMP,
+              created_by        UUID,
+              updated_by        UUID
+            );
+
+            COMMENT ON TABLE password is 'Все пароли пользователей';
+            COMMENT ON COLUMN password.id is 'Id пароля пользователя';
+            COMMENT ON COLUMN password.user_info_id is 'Id пользователя';
+            COMMENT ON COLUMN password.password is 'Хэш пароля';
+            COMMENT ON COLUMN password.created_date is 'Дата создания';
+            COMMENT ON COLUMN password.updated_date is 'Дата обновления';
+            COMMENT ON COLUMN password.created_by is 'Создатель';
+            COMMENT ON COLUMN password.updated_by is 'Пользователь, который обновил';
+        "
+            
+  - changeSet:
+      id: 20201002_create_user_info_table
+      author: author
+      changes: 
+        - sql: "
+            CREATE TABLE user_info (
+              id                  UUID DEFAULT uuid_generate_v1() NOT NULL CONSTRAINT pk_user_info PRIMARY KEY,
+              username            VARCHAR(255) NOT NULL CONSTRAINT user_info_username_key UNIQUE,
+              current_password_id BIGINT NOT NULL CONSTRAINT fk_user_info_current_password_id REFERENCES password,
+              tenant_id           UUID NOT NULL,
+              tenant_creator      BOOLEAN DEFAULT false NOT NULL,
+              enabled             BOOLEAN NOT NULL,
+              account_non_expired BOOLEAN NOT NULL,
+              credentials_non_expired BOOLEAN NOT NULL,
+              account_non_locked  BOOLEAN NOT NULL,
+              login_attempts      BIGINT,
+              temporary_blocked_time  TIMESTAMP,
+              increase_blocking_time  BIGINT,
+              last_login          TIMESTAMP,
+              second_name         VARCHAR(255) NOT NULL,
+              middle_name         VARCHAR(255),
+              first_name          VARCHAR(255) NOT NULL,
+              full_name           VARCHAR(1024) NOT NULL,
+              created_date        TIMESTAMP DEFAULT now(),
+              updated_date        TIMESTAMP DEFAULT now(),
+              created_by          UUID,
+              updated_by          UUID
+            );
+
+            COMMENT ON TABLE user_info is 'Пользователь';
+            COMMENT ON COLUMN user_info.id is 'Идентификатор';
+            COMMENT ON COLUMN user_info.username is 'Логин пользователя';
+            COMMENT ON COLUMN user_info.current_password_id is 'Пароль';
+            COMMENT ON COLUMN user_info.tenant_id is '';
+            COMMENT ON COLUMN user_info.tenant_creator is '';
+            COMMENT ON COLUMN user_info.enabled is 'Статус пользователя (удаление)';
+            COMMENT ON COLUMN user_info.account_non_expired is 'Статус пользователя (устаревший)';
+            COMMENT ON COLUMN user_info.credentials_non_expired is 'Статус пароля пользователя (устаревший)';
+            COMMENT ON COLUMN user_info.account_non_locked is 'Статус пользователя (блокировка)';
+            COMMENT ON COLUMN user_info.login_attempts is 'Количество неудачных попыток логина';
+            COMMENT ON COLUMN user_info.temporary_blocked_time is 'Временная блокировка пользователя';
+            COMMENT ON COLUMN user_info.increase_blocking_time is 'Инкремент для временной блокировки';
+            COMMENT ON COLUMN user_info.last_login is 'Предыдущий логин пользователя';
+            COMMENT ON COLUMN user_info.second_name is 'Фамилия';
+            COMMENT ON COLUMN user_info.middle_name is 'Отчество';
+            COMMENT ON COLUMN user_info.first_name is 'Имя';
+            COMMENT ON COLUMN user_info.full_name is 'Полное имя пользователя';
+            COMMENT ON COLUMN user_info.created_date is 'Дата создания';
+            COMMENT ON COLUMN user_info.updated_date is 'Дата обновления';
+            COMMENT ON COLUMN user_info.created_by is 'Создатель';
+            COMMENT ON COLUMN user_info.updated_by is 'Пользователь, который обновил';
+          "
+      - sql:
+          sql: "ALTER TABLE user_info ENABLE ROW LEVEL SECURITY;"
+      - sql:
+          sql: "CREATE POLICY user_info_isolation_policy ON user_info USING (tenant_id = current_string('app.current_tenant')::UUID);"
+
+  - changeSet:
+      id: 20201002_create_verification_token_table
+      author: author
+      changes: 
+        - sql: "
+            CREATE TABLE verification_token (
+              id                  BIGSERIAL NOT NULL CONSTRAINT pk_verification_token PRIMARY KEY,
+              user_info_id        UUID NOT NULL,
+              hash                UUID NOT NULL,
+              expiry              TIMESTAMP NOT NULL,
+              created_date        TIMESTAMP DEFAULT now(),
+              updated_date        TIMESTAMP DEFAULT now(),
+              created_by          UUID,
+              updated_by          UUID
+              UNIQUE(hash)
+            );
+            
+            COMMENT ON TABLE verification_token is 'Токены для верификации';
+            COMMENT ON COLUMN verification_token.id is 'Id токена';
+            COMMENT ON COLUMN verification_token.user_info_id is 'Id пользователя';
+            COMMENT ON COLUMN verification_token.hash is 'Хэш';
+            COMMENT ON COLUMN verification_token.expiry is 'Срок действия';
+            COMMENT ON COLUMN user_info.created_date is 'Дата создания';
+            COMMENT ON COLUMN user_info.updated_date is 'Дата обновления';
+            COMMENT ON COLUMN user_info.created_by is 'Создатель';
+            COMMENT ON COLUMN user_info.updated_by is 'Пользователь, который обновил';
+          "

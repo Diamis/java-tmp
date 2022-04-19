@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20200312_enabled_state_model
+      author: eysner
+      changes:
+        - sql:
+            sql: "ALTER TABLE t_entity ADD enabled_state_model BOOLEAN default false not null"

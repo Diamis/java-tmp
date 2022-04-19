@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20210609_change_redirect_uri_lenght
+      author: author
+      changes:
+        - sql:
+            sql: "ALTER TABLE oauth_client_details ADD COLUMN web_server_redirect_url TYPE VARCHAR(500);"

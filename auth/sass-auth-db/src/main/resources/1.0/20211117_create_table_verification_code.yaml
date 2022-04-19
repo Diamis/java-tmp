@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20211117_create_table_verification_code
+      author: author
+      changes:
+        - sql:
+            sql: "
+              CREATE TABLE verification_code (
+                id              UUID NOT NULL CONSTRAINT pk_verification_code PRIMARY KEY,
+                user_info_id    UUID,
+                code            VARCHAR(5),
+                expiry          TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                deleted         BOOLEAN DEFAULT FALSE,
+                created_date    TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                updated_date    TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                created_by      UUID NOT NULL,
+                updated_by      UUID NOT NULL
+              );
+
+              COMMENT ON TABLE verification_code is 'Верификация пользователя по 5 значному коду';
+              COMMENT ON COLUMN verification_code.id is 'Id кода';
+              COMMENT ON COLUMN verification_code.user_info_id is 'Id пользователя';
+              COMMENT ON COLUMN verification_code.code is 'Код отправленный пользователю';
+              COMMENT ON COLUMN verification_code.expiry is 'Срок действия';
+              COMMENT ON COLUMN verification_code.deleted is 'Удален';
+              COMMENT ON COLUMN verification_code.created_date is 'Дата создания';
+              COMMENT ON COLUMN verification_code.updated_date is 'Дата обновления';
+              COMMENT ON COLUMN verification_code.created_by is 'Создатель';
+              COMMENT ON COLUMN verification_code.updated_by is 'Пользователь, который обновил';
+            "

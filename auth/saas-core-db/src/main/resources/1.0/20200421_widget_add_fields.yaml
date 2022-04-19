@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20200421_widget_add_fields
+      author: eysner
+      changes:
+        - sql:
+            sql: "ALTER TABLE t_widget ADD title VARCHAR(255)"
+        - sql:
+            sql: "ALTER TABLE t_widget ADD view_function VARCHAR(255)"

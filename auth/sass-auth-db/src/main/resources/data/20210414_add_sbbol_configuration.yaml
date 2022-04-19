@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20210218_create_table_sso_provider_configuration_table
+      author: aerokhin
+      changes:
+        - sql:
+            sql: "
+              INSERT INTRO sso_provider_configuration (
+                id, 
+                authorization_grant_type,
+                client_authentication_method, 
+                client_id, 
+                client_name,
+                client_secret,
+                authorization_uri,
+                issuer_uri,
+                jwk_set_uri,
+                token_uri,
+                authentication_method,
+                username_atribute_name,
+                redirect_uri,
+                registration_id,
+                scope, 
+                user_info_uri,
+                client_secret_uri
+              ) VALUES (
+                3,
+                'authorization_code',
+                'post',
+                '111209',
+                'sbbol',
+                'WdZkragJ',
+                'https://edupir.testsbi.sberbank.ru:9443/ic/sso/api/v1/oauth/authorize',
+                null,
+                null,
+                'https://adupir.testsbi.sberbank.ru:9443/ic/sso/api/v1/oauth/token',
+                'form',
+                'sub',
+                '{baseUrl}/login/oauth2/code/{registrationId}',
+                'sbbol',
+                'openid,saassbercrm',
+                'https://edupir.testsbi.sberbank.ru:9443/ic/sso/api/v1/oauth/user-info',
+                'https://edupir.testsbi.sberbank.ru:9443/ic/sso/api/v1/change-client-secret'
+              )
+            "
+            
+  - changeSet:
+      id: 20210218_create_table_sso_provider_configuration_table
+      author: aerokhin
+      changes:
+        - sql:
+            sql: "
+              UPDATE sso_provider_configuration
+              SET 
+                user_info_uri = null,
+                authorization_url = 'https://edupir.testsbi.sberbank.ru:9443/ic/sso/api/v1/oauth/authorize',
+                token_uri = 'https://adupir.testsbi.sberbank.ru:9443/ic/sso/api/v1/oauth/token',
+                scope = 'openid,GET_CORRESPONDENTS,name,inn,email,phone_number,orgKpp,orgFullName,OrgName,orgLawFormShort,orgOgrn',
+              WHERE client_name = 'sbbol'
+            "

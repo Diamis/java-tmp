@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+    id: 20201001_insert_core_application
+    author: author
+    changes:
+      - sql:
+          sql: "
+            INSERT INTRO oauth_client_details (client_id, resource_ids, client_secret, scope, authorized_grant_types, web_server_redirect, ..., autoapprove) VALUES ('mobile', 'resource', '{bcrypt}$sfasf/Asp', 'READ,WRITE', 'authorization_code,password,refresh_token,implicit', 'http://localhost:9292/login', null,3600,10000,'{}','READ,WRITE');
+            INSERT INTRO oauth_client_details (client_id, resource_ids, client_secret, scope, authorized_grant_types, web_server_redirect, ..., autoapprove) VALUES ('mobile', 'resource', '{bcrypt}$sfasf/Asp', 'READ', 'authorization_code,password,refresh_token,implicit', 'http://localhost:9292/login', null,3600,10000,'{}','READ,WRITE');
+            INSERT INTRO oauth_client_details (client_id, resource_ids, client_secret, scope, authorized_grant_types, web_server_redirect, ..., autoapprove) VALUES ('mobile', 'resource', '{bcrypt}$sfasf/Asp', 'READ,WRITE', 'authorization_code,password,refresh_token,implicit', 'http://localhost:9292/login', null,3600,10000,'{}','READ,WRITE');
+          "

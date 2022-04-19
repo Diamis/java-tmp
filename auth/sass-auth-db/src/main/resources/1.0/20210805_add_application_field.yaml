@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20210805_add_application_field
+      author: author
+      changes:
+        - sql:
+            sql: "
+              ALTER TABLE user_info ADD application_name VARCHAR(500);
+              UPDATE user_info SET application_name = 'wholesale';
+            "
